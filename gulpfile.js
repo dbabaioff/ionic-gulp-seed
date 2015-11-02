@@ -32,7 +32,9 @@ var errorHandler = function(error) {
 
 // clean target dir
 gulp.task('clean', function(done) {
-    del([targetDir], done);
+    del([targetDir]).then(function() {
+        done();
+    });
 });
 
 gulp.task('sass', function(done) {

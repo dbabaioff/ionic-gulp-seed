@@ -17,9 +17,6 @@ var args = require('yargs')
     .default('build', false)
     .argv;
 
-var vendorFiles = [
-    'app/lib/ionic.js'
-];
 var build = !!(args.build);
 var targetDir = path.resolve(build ? 'www' : 'dev');
 
@@ -39,8 +36,7 @@ gulp.task('clean', function(done) {
 });
 
 // precompile .scss and concat with ionic.css
-//gulp.task('styles', function() {
-//
+gulp.task('styles', function() {
 //    var options = build ? { style: 'compressed' } : { style: 'expanded' };
 //
 //    var sassStream = gulp.src('app/styles/main.scss')
@@ -58,15 +54,15 @@ gulp.task('clean', function(done) {
 //        .on('error', function(err) {
 //            console.log('err: ', err);
 //        });
-//
-//    return streamqueue({ objectMode: true }, ionicStream, sassStream)
-//        .pipe(plugins.autoprefixer('last 1 Chrome version', 'last 3 iOS versions', 'last 3 Android versions'))
-//        .pipe(plugins.concat('main.css'))
-//        .pipe(plugins.if(build, plugins.stripCssComments()))
-//        .pipe(plugins.if(build && !emulate, plugins.rev()))
-//        .pipe(gulp.dest(path.join(targetDir, 'styles')))
-//        .on('error', errorHandler);
-//});
+
+    return gulp
+        .src('**/*.css', {cwd: 'app/css'})
+        .pipe(plugins.if(build, plugins.concat('styles.css')))
+        .pipe(plugins.if(build, plugins.minifyCss()))
+        .pipe(plugins.if(build, plugins.rev()))
+        .pipe(gulp.dest(path.join(targetDir, 'css')))
+        .on('error', errorHandler);
+});
 
 
 // build templatecache, copy scripts.
@@ -136,23 +132,40 @@ gulp.task('images', function() {
 });
 
 // concatenate and minify vendor sources
-gulp.task('vendor', function() {
+gulp.task('vendorJs', function() {
+    var vendorFiles = [
+        'app/lib/ionic/js/ionic.js'
+    ];
+
     return gulp.src(vendorFiles)
         .pipe(plugins.concat('vendor.js'))
         .pipe(plugins.if(build, plugins.uglify()))
         .pipe(plugins.if(build, plugins.rev()))
 
-        .pipe(gulp.dest(targetDir))
+        .pipe(gulp.dest(path.join(targetDir, 'js')))
 
         .on('error', errorHandler);
 });
 
+gulp.task('vendorCss', function() {
+    var vendorFiles = [
+        'app/lib/ionic/css/ionic.css'
+    ];
+
+    return gulp.src(vendorFiles)
+        .pipe(plugins.concat('vendor.css'))
+        .pipe(plugins.if(build, plugins.minifyCss()))
+        .pipe(plugins.if(build, plugins.rev()))
+
+        .pipe(gulp.dest(path.join(targetDir, 'css')))
+
+        .on('error', errorHandler);
+});
+
+gulp.task('vendor', ['vendorJs', 'vendorCss']);
 
 // inject the files in index.html
 gulp.task('index', ['scripts'], function() {
-
-    // build has a '-versionnumber' suffix
-    var cssNaming = 'css/main*';
 
     // injects 'src' into index.html at position 'tag'
     var _inject = function(src, tag) {
@@ -171,11 +184,21 @@ gulp.task('index', ['scripts'], function() {
         return streamqueue({ objectMode: true }, scriptStream);
     };
 
+    var _getAllStyleSources = function() {
+        var scriptStream = gulp.src(['css/**/*.css'], { cwd: targetDir });
+        return streamqueue({ objectMode: true }, scriptStream);
+    };
+
     return gulp.src('app/index.html')
         // inject css
-        .pipe(_inject(gulp.src(cssNaming, { cwd: targetDir }), 'app-styles'))
+        .pipe(plugins.if(build,
+            _inject(gulp.src('css/styles*.css', { cwd: targetDir }), 'app-styles'),
+            _inject(_getAllStyleSources(), 'app')
+        ))
+        // inject vendor.css
+        .pipe(_inject(gulp.src('css/vendor*.css', { cwd: targetDir }), 'vendor-styles'))
         // inject vendor.js
-        .pipe(_inject(gulp.src('vendor*.js', { cwd: targetDir }), 'vendor'))
+        .pipe(_inject(gulp.src('js/vendor*.js', { cwd: targetDir }), 'vendor'))
         // inject app.js (build) or all js files indivually (dev)
         .pipe(plugins.if(build,
             _inject(gulp.src('js/app*.js', { cwd: targetDir }), 'app'),
@@ -192,7 +215,6 @@ gulp.task('watchers', function() {
     gulp.watch('app/fonts/**', ['fonts']);
     gulp.watch('app/images/**', ['images']);
     gulp.watch('app/scripts/**/*.js', ['index']);
-    gulp.watch('./vendor.json', ['vendor']);
     gulp.watch('app/templates/**/*.html', ['index']);
     gulp.watch('app/index.html', ['index']);
     gulp.watch(targetDir + '/**')
@@ -209,7 +231,7 @@ gulp.task('default', function(done) {
         [
             'fonts',
             'templates',
-            //'styles',
+            'styles',
             'images',
             'vendor'
         ],

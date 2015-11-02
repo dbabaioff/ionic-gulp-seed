@@ -1,1 +1,0 @@
-angular.module("starter",["ionic"]).run(["$ionicPlatform",function(o){o.ready(function(){window.cordova&&window.cordova.plugins.Keyboard&&cordova.plugins.Keyboard.hideKeyboardAccessoryBar(!0),window.StatusBar&&StatusBar.styleDefault()})}]);

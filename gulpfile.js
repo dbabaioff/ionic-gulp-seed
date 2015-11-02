@@ -55,12 +55,15 @@ gulp.task('styles', function() {
 //            console.log('err: ', err);
 //        });
 
+    var dest = path.join(targetDir, 'css');
+
     return gulp
-        .src('**/*.css', {cwd: 'app/css'})
+        .src(['*.css', '**/*.css'], {cwd: 'app/css'})
+        .pipe(plugins.if(!build, plugins.changed(dest)))
         .pipe(plugins.if(build, plugins.concat('styles.css')))
         .pipe(plugins.if(build, plugins.minifyCss()))
         .pipe(plugins.if(build, plugins.rev()))
-        .pipe(gulp.dest(path.join(targetDir, 'css')))
+        .pipe(gulp.dest(dest))
         .on('error', errorHandler);
 });
 
@@ -142,7 +145,7 @@ gulp.task('vendorJs', function() {
         .pipe(plugins.if(build, plugins.uglify()))
         .pipe(plugins.if(build, plugins.rev()))
 
-        .pipe(gulp.dest(path.join(targetDir, 'js')))
+        .pipe(gulp.dest(path.join(targetDir, 'js/lib')))
 
         .on('error', errorHandler);
 });
@@ -157,7 +160,7 @@ gulp.task('vendorCss', function() {
         .pipe(plugins.if(build, plugins.minifyCss()))
         .pipe(plugins.if(build, plugins.rev()))
 
-        .pipe(gulp.dest(path.join(targetDir, 'css')))
+        .pipe(gulp.dest(path.join(targetDir, 'css/lib')))
 
         .on('error', errorHandler);
 });
@@ -165,7 +168,7 @@ gulp.task('vendorCss', function() {
 gulp.task('vendor', ['vendorJs', 'vendorCss']);
 
 // inject the files in index.html
-gulp.task('index', ['scripts'], function() {
+gulp.task('index', ['styles', 'scripts'], function() {
 
     // injects 'src' into index.html at position 'tag'
     var _inject = function(src, tag) {
@@ -180,12 +183,12 @@ gulp.task('index', ['scripts'], function() {
     // in development mode, it's better to add each file seperately.
     // it makes debugging easier.
     var _getAllScriptSources = function() {
-        var scriptStream = gulp.src(['js/app.js', 'js/**/*.js'], { cwd: targetDir });
+        var scriptStream = gulp.src(['js/*.js', 'js/!(lib)/**/*.js'], { cwd: targetDir });
         return streamqueue({ objectMode: true }, scriptStream);
     };
 
     var _getAllStyleSources = function() {
-        var scriptStream = gulp.src(['css/**/*.css'], { cwd: targetDir });
+        var scriptStream = gulp.src(['css/*.css', 'css/!(lib)/**/*.css'], { cwd: targetDir });
         return streamqueue({ objectMode: true }, scriptStream);
     };
 
@@ -196,9 +199,9 @@ gulp.task('index', ['scripts'], function() {
             _inject(_getAllStyleSources(), 'app')
         ))
         // inject vendor.css
-        .pipe(_inject(gulp.src('css/vendor*.css', { cwd: targetDir }), 'vendor-styles'))
+        .pipe(_inject(gulp.src('css/lib/vendor*.css', { cwd: targetDir }), 'vendor-styles'))
         // inject vendor.js
-        .pipe(_inject(gulp.src('js/vendor*.js', { cwd: targetDir }), 'vendor'))
+        .pipe(_inject(gulp.src('js/lib/vendor*.js', { cwd: targetDir }), 'vendor'))
         // inject app.js (build) or all js files indivually (dev)
         .pipe(plugins.if(build,
             _inject(gulp.src('js/app*.js', { cwd: targetDir }), 'app'),
@@ -231,7 +234,6 @@ gulp.task('default', function(done) {
         [
             'fonts',
             'templates',
-            'styles',
             'images',
             'vendor'
         ],

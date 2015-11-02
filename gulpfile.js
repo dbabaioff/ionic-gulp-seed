@@ -1,6 +1,6 @@
 'use strict';
 
-var appName = 'IonicGulpFile';
+var appName = 'template';
 
 var gulp = require('gulp');
 var plugins = require('gulp-load-plugins')();
@@ -35,26 +35,22 @@ gulp.task('clean', function(done) {
     del([targetDir], done);
 });
 
+gulp.task('sass', function(done) {
+  //gulp.src('./scss/ionic.app.scss')
+  //      .pipe(sass({
+  //    errLogToConsole: true
+  //  }))
+  //  .pipe(gulp.dest('./app/css/'))
+  //  .pipe(minifyCss({
+  //    keepSpecialComments: 0
+  //  }))
+  //  .pipe(rename({ extname: '.min.css' }))
+  //  .pipe(gulp.dest('./app/css/'))
+  //  .on('end', done);
+});
+
 // precompile .scss and concat with ionic.css
 gulp.task('styles', function() {
-//    var options = build ? { style: 'compressed' } : { style: 'expanded' };
-//
-//    var sassStream = gulp.src('app/styles/main.scss')
-//        .pipe(plugins.sass(options))
-//        .on('error', function(err) {
-//            console.log('err: ', err);
-//        });
-//
-//    // build ionic css dynamically to support custom themes
-//    var ionicStream = gulp.src('app/styles/ionic-styles.scss')
-//        .pipe(plugins.cached('ionic-styles'))
-//        .pipe(plugins.sass(options))
-//        // cache and remember ionic .scss in order to cut down re-compile time
-//        .pipe(plugins.remember('ionic-styles'))
-//        .on('error', function(err) {
-//            console.log('err: ', err);
-//        });
-
     var dest = path.join(targetDir, 'css');
 
     return gulp
@@ -117,15 +113,6 @@ gulp.task('fonts', function() {
         .on('error', errorHandler);
 });
 
-
-// copy templates
-gulp.task('templates', function() {
-    return gulp.src('app/templates/**/*.*')
-        .pipe(gulp.dest(path.join(targetDir, 'templates')))
-
-        .on('error', errorHandler);
-});
-
 // copy images
 gulp.task('images', function() {
     return gulp.src('app/images/**/*.*')
@@ -137,7 +124,7 @@ gulp.task('images', function() {
 // concatenate and minify vendor sources
 gulp.task('vendorJs', function() {
     var vendorFiles = [
-        'app/lib/ionic/js/ionic.js'
+        'app/lib/ionic/js/ionic.bundle.js'
     ];
 
     return gulp.src(vendorFiles)
@@ -213,7 +200,7 @@ gulp.task('index', ['styles', 'scripts'], function() {
 });
 
 // start watchers
-gulp.task('watchers', function() {
+gulp.task('watch', function() {
     gulp.watch('app/fonts/**', ['fonts']);
     gulp.watch('app/images/**', ['images']);
     gulp.watch('app/js/**/*.js', ['index']);
@@ -230,14 +217,13 @@ gulp.task('noop', function() {});
 // our main sequence, with some conditional jobs depending on params
 gulp.task('default', function(done) {
     runSequence(
-        //'clean',
+        ///'clean',
         [
             'fonts',
-            'templates',
             'images',
             'vendor'
         ],
         'index',
-        build ? 'noop' : 'watchers',
+        build ? 'noop' : 'watch',
         done);
 });

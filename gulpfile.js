@@ -18,7 +18,7 @@ var args = require('yargs')
     .argv;
 
 var build = !!(args.build);
-var targetDir = path.resolve(build ? 'www' : 'dev');
+var targetDir = path.resolve(build ? 'www' : 'www-dev');
 
 // global error handler
 var errorHandler = function(error) {
@@ -171,7 +171,7 @@ gulp.task('vendor', ['vendorJs', 'vendorCss']);
 gulp.task('index', ['styles', 'scripts'], function() {
 
     // injects 'src' into index.html at position 'tag'
-    var _inject = function(src, tag) {
+    var inject = function(src, tag) {
         return plugins.inject(src, {
             starttag: '<!-- inject:' + tag + ':{{ext}} -->',
             read: false,
@@ -182,12 +182,12 @@ gulp.task('index', ['styles', 'scripts'], function() {
     // get all our javascript sources
     // in development mode, it's better to add each file seperately.
     // it makes debugging easier.
-    var _getAllScriptSources = function() {
+    var getAllScriptSources = function() {
         var scriptStream = gulp.src(['js/*.js', 'js/!(lib)/**/*.js'], { cwd: targetDir });
         return streamqueue({ objectMode: true }, scriptStream);
     };
 
-    var _getAllStyleSources = function() {
+    var getAllStyleSources = function() {
         var scriptStream = gulp.src(['css/*.css', 'css/!(lib)/**/*.css'], { cwd: targetDir });
         return streamqueue({ objectMode: true }, scriptStream);
     };
@@ -195,17 +195,17 @@ gulp.task('index', ['styles', 'scripts'], function() {
     return gulp.src('app/index.html')
         // inject css
         .pipe(plugins.if(build,
-            _inject(gulp.src('css/styles*.css', { cwd: targetDir }), 'app-styles'),
-            _inject(_getAllStyleSources(), 'app')
+            inject(gulp.src('css/styles*.css', { cwd: targetDir }), 'app-styles'),
+            inject(getAllStyleSources(), 'app-styles')
         ))
         // inject vendor.css
-        .pipe(_inject(gulp.src('css/lib/vendor*.css', { cwd: targetDir }), 'vendor-styles'))
+        .pipe(inject(gulp.src('css/lib/vendor*.css', { cwd: targetDir }), 'vendor-styles'))
         // inject vendor.js
-        .pipe(_inject(gulp.src('js/lib/vendor*.js', { cwd: targetDir }), 'vendor'))
+        .pipe(inject(gulp.src('js/lib/vendor*.js', { cwd: targetDir }), 'vendor'))
         // inject app.js (build) or all js files indivually (dev)
         .pipe(plugins.if(build,
-            _inject(gulp.src('js/app*.js', { cwd: targetDir }), 'app'),
-            _inject(_getAllScriptSources(), 'app')
+            inject(gulp.src('js/app*.js', { cwd: targetDir }), 'app'),
+            inject(getAllScriptSources(), 'app')
         ))
 
         .pipe(gulp.dest(targetDir))
@@ -214,10 +214,10 @@ gulp.task('index', ['styles', 'scripts'], function() {
 
 // start watchers
 gulp.task('watchers', function() {
-    gulp.watch('app/styles/**/*.scss', ['styles']);
     gulp.watch('app/fonts/**', ['fonts']);
     gulp.watch('app/images/**', ['images']);
-    gulp.watch('app/scripts/**/*.js', ['index']);
+    gulp.watch('app/js/**/*.js', ['index']);
+    gulp.watch('app/css/**/*.css', ['index']);
     gulp.watch('app/templates/**/*.html', ['index']);
     gulp.watch('app/index.html', ['index']);
     gulp.watch(targetDir + '/**')

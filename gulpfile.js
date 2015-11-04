@@ -1,6 +1,6 @@
 'use strict';
 
-var appName = 'template';
+var appName = 'templates';
 
 var gulp = require('gulp');
 var plugins = require('gulp-load-plugins')();
@@ -8,16 +8,21 @@ var del = require('del');
 var path = require('path');
 var streamqueue = require('streamqueue');
 var runSequence = require('run-sequence');
+var express = require('express');
+var connectLr = require('connect-livereload');
+var open = require('open');
 
 /**
  * Parse arguments
  */
 var args = require('yargs')
     .alias('b', 'build')
+    .default('port', 8100)
     .default('build', false)
     .argv;
 
-var build = !!(args.build);
+var port      = args.port;
+var build     = !!(args.build);
 var targetDir = path.resolve(build ? 'www' : 'www-dev');
 
 // global error handler
@@ -28,7 +33,6 @@ var errorHandler = function(error) {
         plugins.util.log(error);
     }
 };
-
 
 // clean target dir
 gulp.task('clean', function(done) {
@@ -86,6 +90,7 @@ gulp.task('scripts', function() {
         .pipe(plugins.angularTemplatecache('templates.js', {
             root: 'templates/',
             module: appName,
+            standalone: true,
             htmlmin: build && templateConfig
         }));
 
@@ -158,7 +163,6 @@ gulp.task('vendor', ['vendorJs', 'vendorCss']);
 
 // inject the files in index.html
 gulp.task('index', ['styles', 'scripts'], function() {
-
     // injects 'src' into index.html at position 'tag'
     var inject = function(src, tag) {
         return plugins.inject(src, {
@@ -201,11 +205,20 @@ gulp.task('index', ['styles', 'scripts'], function() {
         .on('error', errorHandler);
 });
 
+// start local express server
+gulp.task('serve', function() {
+    express()
+        .use(!build ? connectLr() : function(){})
+        .use(express.static(targetDir))
+        .listen(port);
+    open('http://localhost:' + port + '/');
+});
+
 // start watchers
 gulp.task('watch', function() {
     gulp.watch('app/fonts/**', ['fonts']);
     gulp.watch('app/images/**', ['images']);
-    gulp.watch('app/js/**/*.js', ['index']);
+    gulp.watch(['app/js/**/*.js'], ['index']);
     gulp.watch('app/css/**/*.css', ['index']);
     gulp.watch('app/templates/**/*.html', ['index']);
     gulp.watch('app/index.html', ['index']);
@@ -219,7 +232,7 @@ gulp.task('noop', function() {});
 // our main sequence, with some conditional jobs depending on params
 gulp.task('default', function(done) {
     runSequence(
-        ///'clean',
+        'clean',
         [
             'fonts',
             'images',
@@ -227,5 +240,6 @@ gulp.task('default', function(done) {
         ],
         'index',
         build ? 'noop' : 'watch',
+        build ? 'noop' : 'serve',
         done);
 });

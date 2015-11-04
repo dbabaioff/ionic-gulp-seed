@@ -216,6 +216,8 @@ gulp.task('serve', function() {
 
 // start watchers
 gulp.task('watch', function() {
+    plugins.livereload.listen();
+
     gulp.watch('app/fonts/**', ['fonts']);
     gulp.watch('app/images/**', ['images']);
     gulp.watch(['app/js/**/*.js'], ['index']);
@@ -223,7 +225,8 @@ gulp.task('watch', function() {
     gulp.watch('app/templates/**/*.html', ['index']);
     gulp.watch('app/index.html', ['index']);
     gulp.watch(targetDir + '/**')
-        .on('error', errorHandler);
+       .on('change', plugins.livereload.changed)
+       .on('error', errorHandler);
 });
 
 // no-op = empty function

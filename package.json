@@ -28,6 +28,7 @@
     "open": "0.0.5",
     "run-sequence": "^1.1.4",
     "streamqueue": "^1.1.1",
+    "shelljs": "^0.3.0",
     "yargs": "^3.29.0"
   }
 }

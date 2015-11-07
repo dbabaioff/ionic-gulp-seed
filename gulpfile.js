@@ -17,12 +17,14 @@ var open = require('open');
  */
 var args = require('yargs')
     .alias('b', 'build')
+    .alias('r', 'run')
     .default('port', 8100)
     .default('build', false)
     .argv;
 
 var port      = args.port;
-var build     = !!(args.build);
+var build     = !!(args.build || args.run);
+var run       = args.run;
 var targetDir = path.resolve(build ? 'www' : 'www-dev');
 
 // global error handler
@@ -214,6 +216,11 @@ gulp.task('serve', function() {
     open('http://localhost:' + port + '/');
 });
 
+// ionic run wrapper
+gulp.task('ionic:run', plugins.shell.task([
+    'ionic run ' + run
+]));
+
 // start watchers
 gulp.task('watch', function() {
     plugins.livereload.listen();
@@ -244,5 +251,6 @@ gulp.task('default', function(done) {
         'index',
         build ? 'noop' : 'watch',
         build ? 'noop' : 'serve',
+        run ? 'ionic:run' : 'noop',
         done);
 });
